@@ -110,12 +110,153 @@ export class CreateResourceUseCase {
 
 ## Testing Guidelines
 
+### General Rules
+
 - Tests live alongside source files (`*.test.ts`)
 - Use `Container.reset()` in `beforeEach` for any test using DI
 - For HTTP tests, use `supertest` with the Express app directly (no need to start server)
 - Disable middleware (helmet, cors, compression, morgan) in Application tests for cleaner assertions
 - Mock external services (DB, Redis) — don't require live connections for unit tests
 - The test setup (`src/__tests__/setup.ts`) provides `DATABASE_URL` and `JWT_SECRET` env vars
+
+### Testing a Module (layer by layer, bottom-up)
+
+#### 1. Value Objects (pure unit tests)
+
+Test file: `domain/value-objects/<name>.vo.test.ts`
+
+```typescript
+import { describe, it, expect } from 'vitest'
+import { Email } from './email.vo'
+
+describe('Email', () => {
+  it('should create from valid address', () => {
+    expect(Email.create('user@test.com').toString()).toBe('user@test.com')
+  })
+  it('should reject invalid address', () => {
+    expect(() => Email.create('invalid')).toThrow()
+  })
+})
+```
+
+No DI needed. Test validation, equality, `toString()`, factory methods.
+
+#### 2. Entities (pure unit tests)
+
+Test file: `domain/entities/<name>.entity.test.ts`
+
+Test `create()`, `reconstitute()`, mutation methods (`changeName()`, etc.), and validation errors.
+
+#### 3. Repositories (direct instantiation)
+
+Test file: `infrastructure/repositories/<name>.repository.test.ts`
+
+For in-memory repos, instantiate directly. For Drizzle repos, mock the database or skip (integration test territory).
+
+```typescript
+const repo = new InMemoryCategoryRepository()
+const category = Category.create({ name: 'Test', description: '' })
+await repo.save(category)
+expect(await repo.findById(category.id)).toBeDefined()
+```
+
+#### 4. Domain Services (mock repository interface)
+
+Test file: `domain/services/<name>.service.test.ts`
+
+```typescript
+const mockRepo: Partial<ICategoryRepository> = {
+  findByName: vi.fn().mockResolvedValue(null),
+  save: vi.fn(),
+}
+const container = Container.getInstance()
+container.register(CategoryDomainService, CategoryDomainService)
+container.registerInstance(CATEGORY_REPOSITORY, mockRepo)
+const service = container.resolve(CategoryDomainService)
+```
+
+#### 5. Use Cases (mock repo via DI)
+
+Test file: `application/use-cases/<name>.use-case.test.ts`
+
+One test file per use case. Register mock repos, test happy path and error cases.
+
+```typescript
+beforeEach(() => {
+  Container.reset()
+  const container = Container.getInstance()
+  container.register(GetCategoryUseCase, GetCategoryUseCase)
+  container.registerInstance(CATEGORY_REPOSITORY, mockRepo)
+})
+```
+
+For use cases with `@Transactional()`, also register a mock `TransactionManager`:
+```typescript
+import { TRANSACTION_MANAGER } from '@/core/interfaces'
+container.registerInstance(TRANSACTION_MANAGER, {
+  begin: async () => ({}),
+  commit: async () => {},
+  rollback: async () => {},
+})
+```
+
+#### 6. Controller Integration (HTTP via supertest)
+
+Test file: `presentation/<name>.controller.test.ts`
+
+**Critical**: After `Container.reset()`, `@Service()` decorator-time registrations are wiped. You must create a `TestModule` that explicitly registers ALL classes in the dependency chain:
+
+```typescript
+class TestCategoryModule implements AppModule {
+  register(container: Container): void {
+    container.register(InMemoryCategoryRepository, InMemoryCategoryRepository)
+    container.register(CategoryDomainService, CategoryDomainService)
+    container.register(CreateCategoryUseCase, CreateCategoryUseCase)
+    container.register(GetCategoryUseCase, GetCategoryUseCase)
+    // ... every use case and service ...
+    container.register(CategoryController, CategoryController)
+    const repo = container.resolve(InMemoryCategoryRepository)
+    container.registerInstance(CATEGORY_REPOSITORY, repo)
+  }
+  routes(): ModuleRoutes {
+    return {
+      path: '/categories',
+      router: buildRoutes(CategoryController),
+      controller: CategoryController,
+    }
+  }
+}
+```
+
+Then in the test:
+```typescript
+beforeEach(() => {
+  Container.reset()
+  app = new Application({
+    modules: [TestCategoryModule as AppModuleClass],
+    helmet: false, cors: false, compression: false, morgan: false,
+  })
+  ;(app as any).setup()
+  expressApp = app.getExpressApp()
+})
+```
+
+### Known Pitfalls for Tests
+
+1. **`Container.reset()` wipes everything** — including `@Service()` and `@Controller()` registrations that happened at module load time. Always re-register explicitly.
+2. **Separate `RequestContext` instances** — middleware and handler get different `RequestContext` objects, so `ctx.set()` in middleware is lost in the handler. Test middleware effects via response headers/status.
+3. **`import.meta.glob` loads test files** — module `index.ts` globs must include `'!./**/*.test.ts'` to exclude test files, otherwise `vi.mock()` crashes the runtime.
+4. **`@Transactional()` needs a `TransactionManager`** — register a mock one in tests for use cases that use this decorator.
+
+### Running Tests
+
+```bash
+pnpm test                                    # All tests
+pnpm test -- --run src/modules/categories/   # One module
+pnpm test -- --run src/core/                 # Core framework only
+pnpm test:watch                              # Watch mode
+pnpm test:coverage                           # Coverage report
+```
 
 ## Don't
 

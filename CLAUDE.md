@@ -107,13 +107,79 @@ Controllers receive `RequestContext` (not Express req/res):
 
 ## Testing
 
-- Framework: Vitest
-- Tests co-located with source: `*.test.ts` next to `*.ts`
-- Setup file: `src/__tests__/setup.ts`
-- Run: `pnpm test`
-- Always `Container.reset()` in `beforeEach` for DI tests
-- Use `supertest` for HTTP integration tests
-- When testing Application, disable helmet/cors/compression/morgan for clean assertions
+- **Framework:** Vitest + Supertest
+- **Tests co-located** with source: `*.test.ts` next to `*.ts`
+- **Setup file:** `src/__tests__/setup.ts` (sets `DATABASE_URL`, `JWT_SECRET`, `NODE_ENV=test`)
+- **Run:** `pnpm test`, `pnpm test:watch`, `pnpm test:coverage`
+
+### DI Test Isolation
+
+Always call `Container.reset()` in `beforeEach`. This wipes all registrations including those from `@Service()` decorators at module-load time. After reset, you must re-register classes explicitly:
+
+```typescript
+beforeEach(() => {
+  Container.reset()
+  const container = Container.getInstance()
+  container.register(MyService, MyService)
+  container.registerInstance(MY_REPO, mockRepo)
+})
+```
+
+### Testing by Layer
+
+**Value objects / entities** — pure unit tests, no DI:
+```typescript
+it('should validate name', () => {
+  expect(() => CategoryName.create('')).toThrow()
+})
+```
+
+**Use cases** — mock the repository via DI:
+```typescript
+const mockRepo: Partial<ICategoryRepository> = {
+  findById: vi.fn().mockResolvedValue(someCategory),
+}
+container.registerInstance(CATEGORY_REPOSITORY, mockRepo)
+```
+
+**Controller integration** — use a `TestModule` that explicitly registers all dependencies:
+```typescript
+class TestMyModule implements AppModule {
+  register(container: Container): void {
+    // Must register EVERY class in the dependency chain
+    container.register(InMemoryMyRepository, InMemoryMyRepository)
+    container.register(MyDomainService, MyDomainService)
+    container.register(CreateMyUseCase, CreateMyUseCase)
+    // ... all use cases ...
+    container.register(MyController, MyController)
+    const repo = container.resolve(InMemoryMyRepository)
+    container.registerInstance(MY_REPOSITORY, repo)
+  }
+  routes(): ModuleRoutes {
+    return { path: '/my-resource', router: buildRoutes(MyController), controller: MyController }
+  }
+}
+
+// Then in test:
+app = new Application({
+  modules: [TestMyModule as AppModuleClass],
+  helmet: false, cors: false, compression: false, morgan: false,
+})
+;(app as any).setup()
+const expressApp = app.getExpressApp()
+await request(expressApp).get('/api/v1/my-resource/').expect(200)
+```
+
+### Known Limitation
+
+The framework creates **separate `RequestContext` instances** for middleware and handler (see `router-builder.ts`). This means `ctx.set()` in middleware is NOT visible to `ctx.get()` in the handler. Test middleware side-effects via response headers or status codes instead.
+
+### Glob Exclusion
+
+Module `import.meta.glob` patterns must exclude test files to prevent `vi.mock()` from crashing the runtime:
+```typescript
+import.meta.glob(['./domain/services/**/*.ts', '!./**/*.test.ts'], { eager: true })
+```
 
 ## Database Commands
 

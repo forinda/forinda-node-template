@@ -77,6 +77,23 @@ pnpm dev
 
 Runs with HMR via `vite-node --watch`.
 
+### Debugging
+
+```bash
+# Dev server with Node.js inspector (port 9229)
+pnpm dev:debug
+
+# Production build with inspector
+pnpm start:debug
+```
+
+Then attach your debugger to `localhost:9229`. VSCode launch configurations are included in `.vscode/launch.json`:
+
+- **Debug Dev Server** — launches dev server with auto-attach
+- **Attach to Running Server** — attach to an already-running `--inspect` process
+- **Debug Production Build** — run and debug the built output
+- **Debug Current Test File** — debug the test file open in your editor
+
 ### Build & Run
 
 ```bash
@@ -96,8 +113,10 @@ docker run -p 3000:3000 --env-file .env node-app
 | Script | Description |
 |---|---|
 | `pnpm dev` | Start dev server with HMR |
+| `pnpm dev:debug` | Dev server with Node.js inspector |
 | `pnpm build` | Production build |
 | `pnpm start` | Run production build |
+| `pnpm start:debug` | Production build with inspector |
 | `pnpm test` | Run tests |
 | `pnpm test:watch` | Run tests in watch mode |
 | `pnpm test:coverage` | Run tests with coverage |
@@ -234,13 +253,67 @@ When the server is running, API docs are available at:
 
 ## Testing
 
-129 tests covering the entire core framework:
+399 tests across 50 test files covering the core framework and all feature modules:
 
 ```bash
-pnpm test
+pnpm test              # Run all tests
+pnpm test:watch        # Watch mode
+pnpm test:coverage     # With coverage report
 ```
 
-Tests are co-located with source files (`*.test.ts` alongside `*.ts`).
+### Test Organization
+
+Tests are co-located with source files (`*.test.ts` alongside `*.ts`):
+
+```
+src/
+├── core/
+│   ├── container.ts
+│   ├── container.test.ts          # 22 tests — DI container
+│   ├── decorators.ts
+│   ├── decorators.test.ts         # 26 tests — all decorators
+│   ├── context.ts
+│   ├── context.test.ts            # 16 tests — RequestContext
+│   ├── ...
+├── modules/
+│   ├── categories/
+│   │   ├── domain/
+│   │   │   ├── entities/category.entity.test.ts
+│   │   │   ├── value-objects/category-name.vo.test.ts
+│   │   │   └── services/category-domain.service.test.ts
+│   │   ├── application/use-cases/
+│   │   │   ├── create-category.use-case.test.ts
+│   │   │   └── ...
+│   │   ├── infrastructure/repositories/
+│   │   │   └── in-memory-category.repository.test.ts
+│   │   └── presentation/
+│   │       └── category.controller.test.ts     # HTTP integration
+│   └── ... (same pattern for users, products, auth)
+```
+
+### Test Layers
+
+| Layer | What to test | How to test |
+|---|---|---|
+| **Value Objects** | Validation, equality, factory methods | Pure unit tests, no DI |
+| **Entities** | State transitions, business rules | Pure unit tests, no DI |
+| **Repositories** | CRUD operations, queries | Direct instantiation (in-memory) or mock DB |
+| **Domain Services** | Cross-entity logic | Mock repository interfaces |
+| **Use Cases** | Orchestration, DTO mapping, error handling | Mock repos via `container.registerInstance(TOKEN, mock)` |
+| **Controllers** | HTTP request/response contracts | Supertest + `Application` with `TestModule` |
+
+### Running Specific Tests
+
+```bash
+# Single module
+pnpm test -- --run src/modules/categories/
+
+# Single file
+pnpm test -- --run src/modules/categories/domain/entities/category.entity.test.ts
+
+# Pattern match
+pnpm test -- --run -t "should create"
+```
 
 ## License
 
