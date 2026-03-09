@@ -140,8 +140,7 @@ export class DatabaseService<TSchema extends Record<string, unknown> = Record<st
  */
 export class DrizzleTransactionManager<
   TSchema extends Record<string, unknown> = Record<string, never>,
-> implements TransactionManager<DrizzleTransaction<TSchema>>
-{
+> implements TransactionManager<DrizzleTransaction<TSchema>> {
   private pending = new Map<symbol, { resolve: (v: void) => void; reject: (e: Error) => void }>()
 
   constructor(private readonly database: DatabaseService<TSchema>) {}
