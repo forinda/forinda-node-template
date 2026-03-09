@@ -1,12 +1,5 @@
 import 'reflect-metadata'
-import {
-  Application,
-  SwaggerAdapter,
-  DatabaseAdapter,
-  RateLimiterAdapter,
-  loadEnv,
-  type AppAdapter,
-} from '@/core'
+import { Application, SwaggerAdapter, DatabaseAdapter, loadEnv, type AppAdapter } from '@/core'
 import { createLogger } from '@/core/logger'
 import { modules } from '@/modules'
 import { redisAdapter } from './redis'

@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import request from 'supertest'
-import bcrypt from 'bcryptjs'
 import { Container, Application, buildRoutes, TRANSACTION_MANAGER, AuditService } from '@/core'
 import type { AppModule, AppModuleClass, ModuleRoutes, TransactionManager } from '@/core'
 import {
