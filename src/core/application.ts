@@ -156,7 +156,25 @@ export class Application {
       res.json({ status: 'ok' })
     })
 
-    // 7. Adapter beforeStart hooks
+    // 7. Global error handler — catches unhandled errors from routes/middleware
+    //    so they return a 500 response instead of crashing the process
+    this.app.use(
+      (
+        err: any,
+        _req: express.Request,
+        res: express.Response,
+        _next: express.NextFunction,
+      ) => {
+        log.error(err, 'Unhandled request error')
+        if (!res.headersSent) {
+          res.status(err.status ?? 500).json({
+            error: err.message ?? 'Internal server error',
+          })
+        }
+      },
+    )
+
+    // 8. Adapter beforeStart hooks
     for (const adapter of this.adapters) {
       adapter.beforeStart?.(this.app, this.container)
     }
