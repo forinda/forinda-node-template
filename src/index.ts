@@ -1,21 +1,31 @@
-import http from 'node:http'
+import 'reflect-metadata'
+import { Application, SwaggerAdapter } from '@/core'
+import { modules } from '@/modules'
+import { redisAdapter } from './redis'
+import { socketAdapter } from './socket'
 
-const PORT = process.env.PORT ?? 3000
+// Store the app on globalThis so we can shut it down on HMR before restarting
+const g = globalThis as any
 
-const server = http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'application/json' })
-  res.end(JSON.stringify({ message: 'Hello from Vite backend!' }))
-})
+async function main() {
+  // Shut down previous instance if it exists (HMR reload)
+  if (g.__app) {
+    await g.__app.shutdown()
+  }
 
-server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`)
-})
-
-if (import.meta.hot) {
-  import.meta.hot.on('vite:beforeFullReload', () => {
-    server.close()
+  const app = new Application({
+    modules,
+    adapters: [
+      socketAdapter,
+      redisAdapter,
+      new SwaggerAdapter({
+        info: { title: 'Node App API', version: '1.0.0' },
+      }),
+    ],
   })
-  import.meta.hot.dispose(() => {
-    server.close()
-  })
+
+  g.__app = app
+  app.start()
 }
+
+main()

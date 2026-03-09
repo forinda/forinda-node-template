@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title><%= title %></title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; color: #333; }
+    h1 { color: #1a1a2e; border-bottom: 2px solid #1a1a2e; padding-bottom: 0.5rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #ddd; padding: 0.6rem 0.8rem; text-align: left; }
+    th { background: #1a1a2e; color: #fff; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    .footer { margin-top: 2rem; font-size: 0.85rem; color: #888; }
+  </style>
+</head>
+<body>
+  <h1><%= title %></h1>
+  <p>Generated on: <%= new Date().toLocaleDateString() %></p>
+
+  <% if (typeof items !== 'undefined' && items.length) { %>
+  <table>
+    <thead>
+      <tr>
+        <% for (const col of columns) { %>
+        <th><%= col %></th>
+        <% } %>
+      </tr>
+    </thead>
+    <tbody>
+      <% for (const item of items) { %>
+      <tr>
+        <% for (const col of columns) { %>
+        <td><%= item[col] ?? '' %></td>
+        <% } %>
+      </tr>
+      <% } %>
+    </tbody>
+  </table>
+  <% } else { %>
+  <p>No data available.</p>
+  <% } %>
+
+  <div class="footer">
+    <p>This report was auto-generated.</p>
+  </div>
+</body>
+</html>
