@@ -44,6 +44,13 @@ export interface ApplicationOptions {
   compression?: boolean
   /** Morgan log format. Set to `false` to disable. Defaults to `'dev'` in development, `'combined'` in production. */
   morgan?: string | false
+  /**
+   * Express `trust proxy` setting. Set when behind a reverse proxy (nginx, AWS ALB, etc.)
+   * so Express correctly reads `X-Forwarded-*` headers for `req.ip`, `req.protocol`, etc.
+   * Accepts `true`, a number of hops, a subnet string, or a custom function.
+   * Defaults to `false`.
+   */
+  trustProxy?: boolean | number | string | ((ip: string, hopIndex: number) => boolean)
 }
 
 /**
@@ -99,7 +106,11 @@ export class Application {
       adapter.beforeMount?.(this.app, this.container)
     }
 
-    // 2. Global middleware
+    // 2. Hardened defaults
+    this.app.disable('x-powered-by')
+    this.app.set('trust proxy', this.options.trustProxy ?? false)
+
+    // 3. Global middleware
     if (this.options.helmet !== false) {
       this.app.use(helmet())
     }
@@ -116,17 +127,17 @@ export class Application {
     }
     this.app.use(express.json())
 
-    // 3. Instantiate each module and run register()
+    // 4. Instantiate each module and run register()
     const modules = this.options.modules.map((ModuleClass) => {
       const mod = new ModuleClass()
       mod.register(this.container)
       return mod
     })
 
-    // 4. Bootstrap @Configuration / @Bean factories
+    // 5. Bootstrap @Configuration / @Bean factories
     this.container.bootstrap()
 
-    // 5. Mount each module's routes with versioning
+    // 6. Mount each module's routes with versioning
     const apiPrefix = this.options.apiPrefix ?? '/api'
     const defaultVersion = this.options.defaultVersion ?? 1
 
@@ -151,20 +162,20 @@ export class Application {
       }
     }
 
-    // 6. Default health endpoint
+    // 7. Default health endpoint
     this.app.get('/health', (_req, res) => {
       res.json({ status: 'ok' })
     })
 
-    // 7. Global error handler — catches unhandled errors from routes/middleware
+    // 8. Catch-all for unmatched routes
+    this.app.use((_req: express.Request, res: express.Response) => {
+      res.status(404).json({ error: 'Not found' })
+    })
+
+    // 9. Global error handler (must have 4 params for Express to treat it as error middleware) — catches unhandled errors from routes/middleware
     //    so they return a 500 response instead of crashing the process
     this.app.use(
-      (
-        err: any,
-        _req: express.Request,
-        res: express.Response,
-        _next: express.NextFunction,
-      ) => {
+      (err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
         log.error(err, 'Unhandled request error')
         if (!res.headersSent) {
           res.status(err.status ?? 500).json({
@@ -174,7 +185,7 @@ export class Application {
       },
     )
 
-    // 8. Adapter beforeStart hooks
+    // 10. Adapter beforeStart hooks
     for (const adapter of this.adapters) {
       adapter.beforeStart?.(this.app, this.container)
     }
