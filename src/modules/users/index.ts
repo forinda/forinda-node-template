@@ -3,7 +3,10 @@ import { USER_REPOSITORY } from './domain/repositories/user.repository'
 import { InMemoryUserRepository } from './infrastructure/repositories/in-memory-user.repository'
 import { UserController } from './presentation/user.controller'
 
-import.meta.glob(['./domain/services/**/*.ts', './application/use-cases/**/*.ts'], { eager: true })
+import.meta.glob(
+  ['./domain/services/**/*.ts', './application/use-cases/**/*.ts', '!./**/*.test.ts'],
+  { eager: true },
+)
 
 export class UserModule implements AppModule {
   register(container: Container): void {

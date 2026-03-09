@@ -32,6 +32,7 @@ export default defineConfig({
     target: 'node18',
     ssr: true,
     outDir: 'dist',
+    sourcemap: true,
     rollupOptions: {
       input: resolve(__dirname, 'src/index.ts'),
       output: {

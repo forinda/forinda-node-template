@@ -5,8 +5,10 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "vite-node --watch src/index.ts",
+    "dev:debug": "vite-node --inspect --watch src/index.ts",
     "build": "vite build",
     "start": "node dist/index.js",
+    "start:debug": "node --inspect dist/index.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",

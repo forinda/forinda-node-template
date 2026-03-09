@@ -8,6 +8,7 @@ import.meta.glob(
     './domain/services/**/*.ts',
     './application/use-cases/**/*.ts',
     './presentation/**/*.controller.ts',
+    '!./**/*.test.ts',
   ],
   { eager: true },
 )

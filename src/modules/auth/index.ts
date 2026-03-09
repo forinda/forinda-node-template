@@ -3,7 +3,10 @@ import { AUTH_REPOSITORY } from './domain/repositories/auth.repository'
 import { DrizzleAuthRepository } from './infrastructure/repositories/drizzle-auth.repository'
 import { AuthController } from './presentation/auth.controller'
 
-import.meta.glob(['./domain/services/**/*.ts', './application/use-cases/**/*.ts'], { eager: true })
+import.meta.glob(
+  ['./domain/services/**/*.ts', './application/use-cases/**/*.ts', '!./**/*.test.ts'],
+  { eager: true },
+)
 
 export class AuthModule implements AppModule {
   register(container: Container): void {
