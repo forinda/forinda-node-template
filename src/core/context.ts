@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express'
 import type { UploadedFile } from './middleware/upload'
+import { parseQuery, type ParsedQuery, type QueryFieldConfig } from './query'
 
 /**
  * Request context passed to every controller method.
@@ -46,6 +47,17 @@ export class RequestContext<TBody = any, TParams = any, TQuery = any> {
   /** Query string parameters. */
   get query(): TQuery {
     return this.req.query as TQuery
+  }
+
+  /**
+   * Parsed and structured query parameters (filters, sort, pagination, search).
+   * Optionally pass a `QueryFieldConfig` to restrict which fields are allowed.
+   */
+  qs(fieldConfig?: QueryFieldConfig): ParsedQuery {
+    return parseQuery(
+      this.req.query as Record<string, string | string[] | number | undefined>,
+      fieldConfig,
+    )
   }
 
   /** Request headers. */

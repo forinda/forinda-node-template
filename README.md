@@ -229,6 +229,110 @@ async uploadAvatar(ctx: RequestContext) {
 }
 ```
 
+### Standard Query (Filtering, Sorting & Pagination)
+
+All list endpoints support a standard query string contract for filtering, sorting, pagination, and search. The web/frontend client only needs to pass these query parameters — the backend parses, validates, and converts them to Drizzle ORM queries.
+
+#### Query Parameters
+
+| Parameter | Type | Description | Example |
+|---|---|---|---|
+| `page` | `number` | Page number (1-based, default `1`) | `?page=2` |
+| `limit` | `number` | Items per page (0–100, default `20`) | `?limit=25` |
+| `q` | `string` | Free-text search (max 200 chars) | `?q=john` |
+| `filter` | `string \| string[]` | Filter expression(s) | `?filter=status:eq:active` |
+| `sort` | `string \| string[]` | Sort expression(s) | `?sort=createdAt:desc` |
+
+#### Filter Format
+
+```
+filter=<field>:<operator>:<value>
+```
+
+Multiple filters are AND-ed. Repeat the parameter for multiple filters:
+
+```
+?filter=status:eq:active&filter=age:gte:18
+```
+
+| Operator | Description | Example |
+|---|---|---|
+| `eq` | Equal | `status:eq:active` |
+| `neq` | Not equal | `status:neq:deleted` |
+| `gt` | Greater than | `age:gt:18` |
+| `gte` | Greater than or equal | `age:gte:18` |
+| `lt` | Less than | `price:lt:100` |
+| `lte` | Less than or equal | `price:lte:100` |
+| `between` | Between two values (comma-separated) | `price:between:10,50` |
+| `in` | In a list (comma-separated) | `grade:in:A,B,C` |
+| `contains` | Case-insensitive substring match | `name:contains:john` |
+| `starts` | Starts with (case-insensitive) | `name:starts:joh` |
+| `ends` | Ends with (case-insensitive) | `email:ends:@gmail.com` |
+
+Values may contain colons (e.g. `time:eq:10:30:00`) — only the first two colons are split on.
+
+#### Sort Format
+
+```
+sort=<field>:<direction>
+```
+
+Direction is `asc` or `desc` (case-insensitive). Repeat for multi-column sort:
+
+```
+?sort=lastName:asc&sort=createdAt:desc
+```
+
+#### Allowed Fields
+
+Each endpoint declares which fields are allowed for filtering, sorting, and searching. Unknown fields are silently ignored. The frontend should reference the endpoint's documentation for available fields.
+
+#### Backend Usage
+
+Controllers access parsed query data via `ctx.qs()`:
+
+```typescript
+@Get('/', { query: standardQuerySchema })
+@ApiOperation({ summary: 'List students' })
+async list(ctx: RequestContext) {
+  const parsed = ctx.qs({
+    filterable: ['status', 'gender', 'boardingStatus'],
+    sortable: ['firstName', 'lastName', 'createdAt'],
+    searchable: ['firstName', 'lastName', 'admissionNo'],
+  })
+
+  const q = buildDrizzleQuery(parsed, {
+    columns: {
+      status: students.status,
+      gender: students.gender,
+      boardingStatus: students.boardingStatus,
+      firstName: students.firstName,
+      lastName: students.lastName,
+      createdAt: students.createdAt,
+    },
+    searchColumns: [students.firstName, students.lastName, students.admissionNo],
+    baseCondition: eq(students.tenantId, tenantId),
+  })
+
+  const rows = await db.select().from(students)
+    .where(q.where)
+    .orderBy(...q.orderBy)
+    .limit(q.limit)
+    .offset(q.offset)
+
+  ctx.json(rows)
+}
+```
+
+#### Frontend Examples
+
+```
+GET /api/v1/students?page=1&limit=20
+GET /api/v1/students?q=john&page=1&limit=10
+GET /api/v1/students?filter=status:eq:active&filter=gender:eq:male&sort=lastName:asc
+GET /api/v1/students?filter=createdAt:between:2025-01-01,2025-12-31&sort=createdAt:desc&limit=50
+```
+
 ### Modules
 
 ```typescript
