@@ -2,10 +2,10 @@ import 'reflect-metadata'
 import { Application, SwaggerAdapter, DatabaseAdapter, loadEnv, type AppAdapter } from '@/core'
 import { createLogger } from '@/core/logger'
 import { modules } from '@/modules'
-import { redisAdapter } from './redis'
-import { socketAdapter } from './socket'
+import { redisAdapter } from './app-adapters/redis'
+import { socketAdapter } from './app-adapters/socket'
 import * as schema from '@/db/schema'
-import { rateLimitAdapter } from './rate-limit'
+import { rateLimitAdapter } from './app-adapters/rate-limit'
 
 const log = createLogger('Process')
 
