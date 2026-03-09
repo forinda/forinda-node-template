@@ -19,6 +19,10 @@ export class CategoryModule implements AppModule {
   }
 
   routes(): ModuleRoutes {
-    return { path: '/categories', router: buildRoutes(CategoryController), controller: CategoryController }
+    return {
+      path: '/categories',
+      router: buildRoutes(CategoryController),
+      controller: CategoryController,
+    }
   }
 }

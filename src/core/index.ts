@@ -78,6 +78,7 @@ export {
   ApiResponse,
   ApiTags,
   ApiExclude,
+  ApiBearerAuth,
   type ApiOperationOptions,
   type ApiResponseOptions,
   type OpenAPIInfo,

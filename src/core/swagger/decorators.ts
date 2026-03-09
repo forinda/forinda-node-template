@@ -7,6 +7,7 @@ export const SWAGGER_METADATA = {
   API_RESPONSE: Symbol('swagger:response'),
   API_TAGS: Symbol('swagger:tags'),
   API_EXCLUDE: Symbol('swagger:exclude'),
+  API_BEARER_AUTH: Symbol('swagger:bearer_auth'),
 } as const
 
 // ─── Types ──────────────────────────────────────────────────
@@ -79,6 +80,39 @@ export function ApiTags(...tags: string[]) {
       Reflect.defineMetadata(SWAGGER_METADATA.API_TAGS, tags, target, propertyKey)
     } else {
       Reflect.defineMetadata(SWAGGER_METADATA.API_TAGS, tags, target)
+    }
+  }
+}
+
+/**
+ * Mark a controller or method as requiring Bearer token authentication.
+ * Adds `security: [{ BearerAuth: [] }]` to the affected operations in the
+ * OpenAPI spec and registers the `BearerAuth` security scheme automatically.
+ *
+ * Apply at **class level** to protect all routes, or at **method level** for
+ * individual endpoints.
+ *
+ * @param name - Security scheme name. Defaults to `'BearerAuth'`.
+ *
+ * @example
+ * ```ts
+ * // All routes require Bearer token
+ * @Controller()
+ * @ApiBearerAuth()
+ * class OrderController { ... }
+ *
+ * // Only this route requires Bearer token
+ * @Delete('/:id')
+ * @ApiBearerAuth()
+ * async delete(ctx: RequestContext) { ... }
+ * ```
+ */
+export function ApiBearerAuth(name = 'BearerAuth') {
+  return function (target: any, propertyKey?: string | symbol) {
+    if (propertyKey !== undefined) {
+      Reflect.defineMetadata(SWAGGER_METADATA.API_BEARER_AUTH, name, target, propertyKey)
+    } else {
+      Reflect.defineMetadata(SWAGGER_METADATA.API_BEARER_AUTH, name, target)
     }
   }
 }

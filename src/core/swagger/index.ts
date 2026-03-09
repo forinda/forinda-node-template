@@ -8,6 +8,7 @@ export {
   ApiResponse,
   ApiTags,
   ApiExclude,
+  ApiBearerAuth,
   type ApiOperationOptions,
   type ApiResponseOptions,
 } from './decorators'

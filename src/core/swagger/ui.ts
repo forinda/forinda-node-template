@@ -1,6 +1,6 @@
 /**
- * Generates HTML pages for Swagger UI and ReDoc, served directly
- * from CDN scripts — no extra npm dependencies required.
+ * Generates HTML pages for Swagger UI and ReDoc,
+ * loaded from CDN scripts.
  */
 
 export function swaggerUIHtml(specUrl: string, title = 'API Docs'): string {

@@ -2,11 +2,7 @@ import 'reflect-metadata'
 import { z } from 'zod'
 import { METADATA, type Constructor } from '../interfaces'
 import type { RouteDefinition } from '../decorators'
-import {
-  SWAGGER_METADATA,
-  type ApiOperationOptions,
-  type ApiResponseOptions,
-} from './decorators'
+import { SWAGGER_METADATA, type ApiOperationOptions, type ApiResponseOptions } from './decorators'
 
 // ─── OpenAPI Types ──────────────────────────────────────────
 
@@ -20,13 +16,20 @@ export interface OpenAPISpec {
   openapi: '3.0.3'
   info: OpenAPIInfo
   paths: Record<string, any>
-  components: { schemas: Record<string, any> }
+  components: { schemas: Record<string, any>; securitySchemes?: Record<string, any> }
   tags: { name: string; description?: string }[]
+  security?: Record<string, any[]>[]
 }
 
 export interface SwaggerOptions {
   info?: Partial<OpenAPIInfo>
   servers?: { url: string; description?: string }[]
+  /**
+   * Enable Bearer token authentication in the OpenAPI spec.
+   * - `true` — adds BearerAuth security scheme and applies it globally to all operations.
+   * - `false` / omitted — Bearer auth is only shown on controllers/methods with `@ApiBearerAuth()`.
+   */
+  bearerAuth?: boolean
 }
 
 // ─── Zod → JSON Schema ─────────────────────────────────────
@@ -99,6 +102,15 @@ export function buildOpenAPISpec(options: SwaggerOptions = {}): OpenAPISpec {
     ;(spec as any).servers = options.servers
   }
 
+  // Track security schemes that need to be registered
+  const securitySchemes = new Set<string>()
+
+  // If bearerAuth is globally enabled, apply to all operations
+  if (options.bearerAuth) {
+    securitySchemes.add('BearerAuth')
+    spec.security = [{ BearerAuth: [] }]
+  }
+
   const tagSet = new Set<string>()
   let schemaCounter = 0
 
@@ -121,9 +133,7 @@ export function buildOpenAPISpec(options: SwaggerOptions = {}): OpenAPISpec {
 
     // Default tag from controller name
     const defaultTag =
-      classTags.length > 0
-        ? classTags[0]
-        : controllerClass.name.replace(/Controller$/, '')
+      classTags.length > 0 ? classTags[0] : controllerClass.name.replace(/Controller$/, '')
 
     if (!tagSet.has(defaultTag)) {
       tagSet.add(defaultTag)
@@ -136,8 +146,7 @@ export function buildOpenAPISpec(options: SwaggerOptions = {}): OpenAPISpec {
       }
     }
 
-    const controllerPath =
-      Reflect.getMetadata(METADATA.CONTROLLER_PATH, controllerClass) ?? '/'
+    const controllerPath = Reflect.getMetadata(METADATA.CONTROLLER_PATH, controllerClass) ?? '/'
 
     for (const route of routes) {
       // Skip excluded methods
@@ -193,6 +202,22 @@ export function buildOpenAPISpec(options: SwaggerOptions = {}): OpenAPISpec {
 
       if (operation.description) op.description = operation.description
       if (operation.deprecated) op.deprecated = true
+
+      // Bearer auth — check method-level first, then class-level
+      const methodBearer: string | undefined = Reflect.getMetadata(
+        SWAGGER_METADATA.API_BEARER_AUTH,
+        controllerClass.prototype,
+        route.handlerName,
+      )
+      const classBearer: string | undefined = Reflect.getMetadata(
+        SWAGGER_METADATA.API_BEARER_AUTH,
+        controllerClass,
+      )
+      const bearerName = methodBearer ?? classBearer
+      if (bearerName) {
+        securitySchemes.add(bearerName)
+        op.security = [{ [bearerName]: [] }]
+      }
 
       // Path parameters (from :param patterns)
       const pathParams = extractPathParams(route.path)
@@ -282,6 +307,18 @@ export function buildOpenAPISpec(options: SwaggerOptions = {}): OpenAPISpec {
       }
 
       spec.paths[openAPIPath][route.method] = op
+    }
+  }
+
+  // Register all collected security schemes
+  if (securitySchemes.size > 0) {
+    spec.components.securitySchemes = {}
+    for (const name of securitySchemes) {
+      spec.components.securitySchemes[name] = {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      }
     }
   }
 

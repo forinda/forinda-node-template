@@ -7,7 +7,14 @@ import type { Container } from '../container'
  * Implement this to add WebSocket, gRPC, message queues, etc.
  */
 export interface AppAdapter {
-  /** Called before the HTTP server starts — attach to Express or register DI bindings. */
+  /**
+   * Called before global middleware (helmet, cors, etc.) is applied.
+   * Routes registered here bypass security middleware — ideal for
+   * serving documentation UIs that load CDN scripts.
+   */
+  beforeMount?(app: Express, container: Container): void
+
+  /** Called after middleware and module routes are registered, before the HTTP server starts. */
   beforeStart?(app: Express, container: Container): void
 
   /** Called after the HTTP server is listening — attach to the raw http.Server. */

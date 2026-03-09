@@ -1,6 +1,10 @@
 import 'reflect-metadata'
 import http from 'node:http'
 import express, { type Express } from 'express'
+import helmet from 'helmet'
+import compression from 'compression'
+import cors, { type CorsOptions } from 'cors'
+import morgan from 'morgan'
 import { Container } from './container'
 import type { AppModuleClass } from './app-module'
 import type { AppAdapter } from './adapters/adapter'
@@ -32,6 +36,14 @@ export interface ApplicationOptions {
    * Set to `1` by default. Routes become `/{apiPrefix}/v{version}/{path}`.
    */
   defaultVersion?: number
+  /** CORS options. Pass `true` for permissive defaults, or a CorsOptions object. Defaults to enabled. */
+  cors?: boolean | CorsOptions
+  /** Enable helmet security headers. Defaults to `true`. */
+  helmet?: boolean
+  /** Enable gzip compression. Defaults to `true`. */
+  compression?: boolean
+  /** Morgan log format. Set to `false` to disable. Defaults to `'dev'` in development, `'combined'` in production. */
+  morgan?: string | false
 }
 
 /**
@@ -68,28 +80,53 @@ export class Application {
     this.app = express()
     this.container = Container.getInstance()
     this.adapters = options.adapters ?? []
-    this.app.use(express.json())
   }
 
   /**
-   * Performs the full application setup sequence: registers modules, bootstraps
-   * configuration beans, mounts routes, adds the health endpoint, and runs
-   * adapter `beforeStart` hooks.
+   * Performs the full application setup sequence:
+   * 1. Adapter `beforeMount` hooks (routes registered here bypass global middleware)
+   * 2. Global middleware (helmet, cors, compression, morgan, json parser)
+   * 3. Module registration & route mounting
+   * 4. Health endpoint
+   * 5. Adapter `beforeStart` hooks
    */
   private setup(): void {
     log.info('Bootstrapping application...')
 
-    // 1. Instantiate each module and run register()
+    // 1. Adapter beforeMount hooks — routes registered here bypass global middleware
+    //    (ideal for docs UIs that load CDN scripts blocked by helmet CSP)
+    for (const adapter of this.adapters) {
+      adapter.beforeMount?.(this.app, this.container)
+    }
+
+    // 2. Global middleware
+    if (this.options.helmet !== false) {
+      this.app.use(helmet())
+    }
+    if (this.options.cors !== false) {
+      const corsOpts = typeof this.options.cors === 'object' ? this.options.cors : undefined
+      this.app.use(cors(corsOpts))
+    }
+    if (this.options.compression !== false) {
+      this.app.use(compression())
+    }
+    if (this.options.morgan !== false) {
+      const fmt = typeof this.options.morgan === 'string' ? this.options.morgan : undefined
+      this.app.use(morgan(fmt ?? (process.env.NODE_ENV === 'production' ? 'combined' : 'dev')))
+    }
+    this.app.use(express.json())
+
+    // 3. Instantiate each module and run register()
     const modules = this.options.modules.map((ModuleClass) => {
       const mod = new ModuleClass()
       mod.register(this.container)
       return mod
     })
 
-    // 2. Bootstrap @Configuration / @Bean factories
+    // 4. Bootstrap @Configuration / @Bean factories
     this.container.bootstrap()
 
-    // 3. Mount each module's routes with versioning
+    // 5. Mount each module's routes with versioning
     const apiPrefix = this.options.apiPrefix ?? '/api'
     const defaultVersion = this.options.defaultVersion ?? 1
 
@@ -114,12 +151,12 @@ export class Application {
       }
     }
 
-    // 4. Default health endpoint
+    // 6. Default health endpoint
     this.app.get('/health', (_req, res) => {
       res.json({ status: 'ok' })
     })
 
-    // 5. Adapter beforeStart hooks
+    // 7. Adapter beforeStart hooks
     for (const adapter of this.adapters) {
       adapter.beforeStart?.(this.app, this.container)
     }
