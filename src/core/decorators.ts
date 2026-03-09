@@ -427,6 +427,62 @@ export function Middleware(...handlers: MiddlewareHandler[]) {
   }
 }
 
+// ─── File Upload Decorator ───────────────────────────────────
+
+/**
+ * Configuration for the `@FileUpload` decorator.
+ */
+export interface FileUploadConfig {
+  /** Upload mode: `'single'` for one file, `'array'` for multiple, `'none'` for text fields only. */
+  mode: 'single' | 'array' | 'none'
+  /** The form field name. Defaults to `'file'`. */
+  fieldName?: string
+  /** Max number of files for `'array'` mode. Defaults to `10`. */
+  maxCount?: number
+  /** Max file size in bytes. Defaults to `5 MB`. */
+  maxSize?: number
+  /**
+   * Allowed file types. Accepts short extensions (`'jpg'`, `'png'`, `'pdf'`, `'xlsx'`)
+   * or full MIME types (`'image/jpeg'`). If omitted, all types are allowed.
+   */
+  allowedMimeTypes?: string[]
+}
+
+/**
+ * Attaches file upload handling to a controller method. Multer parses the
+ * multipart form data and makes files available on `ctx.file` (single) or
+ * `ctx.files` (array). Temporary files are automatically cleaned up after
+ * the response is sent.
+ *
+ * @param config - Upload mode and options, or just the mode string for defaults.
+ *
+ * @example
+ * ```ts
+ * @Post('/avatar')
+ * @FileUpload({ mode: 'single', fieldName: 'avatar', maxSize: 5 * 1024 * 1024 })
+ * async uploadAvatar(ctx: RequestContext) {
+ *   const file = ctx.file  // UploadedFile
+ *   ctx.json({ filename: file?.originalname, size: file?.size })
+ * }
+ *
+ * @Post('/gallery')
+ * @FileUpload({ mode: 'array', fieldName: 'photos', maxCount: 5, allowedMimeTypes: ['jpg', 'png', 'webp'] })
+ * async uploadPhotos(ctx: RequestContext) {
+ *   const files = ctx.files  // UploadedFile[]
+ *   ctx.json({ count: files?.length })
+ * }
+ * ```
+ */
+export function FileUpload(
+  config: FileUploadConfig | 'single' | 'array' | 'none',
+): MethodDecorator {
+  const cfg: FileUploadConfig = typeof config === 'string' ? { mode: config } : config
+
+  return function (target: any, propertyKey: string | symbol, _descriptor: PropertyDescriptor) {
+    Reflect.defineMetadata(METADATA.FILE_UPLOAD, cfg, target, propertyKey)
+  }
+}
+
 // ─── HTTP Method Decorators ──────────────────────────────────
 
 type ValidationSchemas = {

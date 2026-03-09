@@ -68,6 +68,8 @@ export const METADATA = {
   CLASS_MIDDLEWARES: Symbol('di:class_middlewares'),
   /** Stores method-level middleware handlers on a controller method. */
   METHOD_MIDDLEWARES: Symbol('di:method_middlewares'),
+  /** Stores file upload configuration on a controller method. */
+  FILE_UPLOAD: Symbol('di:file_upload'),
   /** TypeScript emit key for constructor parameter types. */
   PARAM_TYPES: 'design:paramtypes',
   /** TypeScript emit key for a property's declared type. */

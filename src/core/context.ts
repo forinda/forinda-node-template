@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express'
+import type { UploadedFile } from './middleware/upload'
 
 /**
  * Request context passed to every controller method.
@@ -14,6 +15,23 @@ export class RequestContext<TBody = any, TParams = any, TQuery = any> {
     readonly res: Response,
     readonly next: NextFunction,
   ) {}
+
+  /**
+   * The uploaded file (set by `@FileUpload('single')` or `upload('single')` middleware).
+   * `undefined` if no file was uploaded or a different upload mode was used.
+   */
+  get file(): UploadedFile | undefined {
+    return (this.req as any).file
+  }
+
+  /**
+   * Array of uploaded files (set by `@FileUpload('array')` or `upload('array')` middleware).
+   * `undefined` if no files were uploaded or a different upload mode was used.
+   */
+  get files(): UploadedFile[] | undefined {
+    const f = (this.req as any).files
+    return Array.isArray(f) ? f : undefined
+  }
 
   /** Validated request body (set by the `validate` middleware). */
   get body(): TBody {

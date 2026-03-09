@@ -1,10 +1,12 @@
 import 'reflect-metadata'
+import multer from 'multer'
 import { Router, type Request, type Response, type NextFunction } from 'express'
 import { Container } from './container'
 import { METADATA, type Constructor } from './interfaces'
 import { validate } from './middleware/validate'
+import { upload, cleanupFiles, resolveMimeTypes } from './middleware/upload'
 import { RequestContext } from './context'
-import type { RouteDefinition, MiddlewareHandler } from './decorators'
+import type { RouteDefinition, MiddlewareHandler, FileUploadConfig } from './decorators'
 
 /**
  * Reads `@Get`, `@Post`, `@Put`, `@Delete`, `@Patch` metadata from a
@@ -33,6 +35,39 @@ export function buildRoutes(controllerClass: Constructor): Router {
 
   for (const route of routes) {
     const expressMiddlewares: any[] = []
+
+    // File upload middleware (must come before validation so multipart is parsed)
+    const uploadConfig: FileUploadConfig | undefined = Reflect.getMetadata(
+      METADATA.FILE_UPLOAD,
+      controllerClass.prototype,
+      route.handlerName,
+    )
+    if (uploadConfig) {
+      const maxSize = uploadConfig.maxSize ?? 5 * 1024 * 1024 // default 5 MB
+      const multerOpts: any = { limits: { fileSize: maxSize } }
+      if (uploadConfig.allowedMimeTypes) {
+        const allowed = resolveMimeTypes(uploadConfig.allowedMimeTypes)
+        multerOpts.fileFilter = (
+          _req: Request,
+          file: Express.Multer.File,
+          cb: multer.FileFilterCallback,
+        ) => {
+          if (allowed.includes(file.mimetype)) {
+            cb(null, true)
+          } else {
+            cb(new Error(`File type ${file.mimetype} is not allowed`))
+          }
+        }
+      }
+      expressMiddlewares.push(
+        upload(uploadConfig.mode, {
+          fieldName: uploadConfig.fieldName,
+          maxCount: uploadConfig.maxCount,
+          multerOptions: multerOpts,
+        }),
+      )
+      expressMiddlewares.push(cleanupFiles())
+    }
 
     // Add validation middleware if schemas are defined
     if (route.validation) {
