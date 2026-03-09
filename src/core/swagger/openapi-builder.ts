@@ -1,7 +1,7 @@
 import 'reflect-metadata'
 import { z } from 'zod'
 import { METADATA, type Constructor } from '../interfaces'
-import type { RouteDefinition } from '../decorators'
+import type { RouteDefinition, FileUploadConfig } from '../decorators'
 import { SWAGGER_METADATA, type ApiOperationOptions, type ApiResponseOptions } from './decorators'
 
 // ─── OpenAPI Types ──────────────────────────────────────────
@@ -256,8 +256,56 @@ export function buildOpenAPISpec(options: SwaggerOptions = {}): OpenAPISpec {
         }
       }
 
-      // Request body from Zod schema
-      if (route.validation?.body) {
+      // File upload — detect @FileUpload metadata
+      const fileUpload: FileUploadConfig | undefined = Reflect.getMetadata(
+        METADATA.FILE_UPLOAD,
+        controllerClass.prototype,
+        route.handlerName,
+      )
+
+      if (fileUpload && fileUpload.mode !== 'none') {
+        // Build multipart/form-data schema
+        const fieldName = fileUpload.fieldName ?? 'file'
+        const properties: Record<string, any> = {}
+        const required: string[] = []
+
+        if (fileUpload.mode === 'single') {
+          properties[fieldName] = { type: 'string', format: 'binary' }
+          required.push(fieldName)
+        } else if (fileUpload.mode === 'array') {
+          properties[fieldName] = {
+            type: 'array',
+            items: { type: 'string', format: 'binary' },
+          }
+          required.push(fieldName)
+        }
+
+        // If there's also a body validation schema, merge its fields
+        // (multipart forms can carry both files and text fields)
+        if (route.validation?.body) {
+          const bodyJsonSchema = zodToJsonSchema(route.validation.body)
+          if (bodyJsonSchema.properties) {
+            Object.assign(properties, bodyJsonSchema.properties)
+          }
+          if (bodyJsonSchema.required) {
+            required.push(...bodyJsonSchema.required)
+          }
+        }
+
+        op.requestBody = {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties,
+                ...(required.length > 0 ? { required } : {}),
+              },
+            },
+          },
+        }
+      } else if (route.validation?.body) {
+        // Regular JSON request body
         const schemaName = addSchema(route.validation.body, route.handlerName)
         op.requestBody = {
           required: true,

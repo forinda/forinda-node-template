@@ -13,6 +13,9 @@ export const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
+  // Database (PostgreSQL)
+  DATABASE_URL: z.string(),
+
   // Redis
   REDIS_HOST: z.string().default('127.0.0.1'),
   REDIS_PORT: z.coerce.number().default(6379),
@@ -22,6 +25,10 @@ export const envSchema = z.object({
     .enum(['true', 'false', '1', '0'])
     .default('true')
     .transform((v) => v === 'true' || v === '1'),
+
+  // JWT
+  JWT_SECRET: z.string().default('change-me-in-production'),
+  JWT_EXPIRATION: z.string().default('7d'),
 
   // Mail (Resend)
   RESEND_API_KEY: z.string().optional(),

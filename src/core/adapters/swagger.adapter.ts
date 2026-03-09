@@ -32,12 +32,7 @@ const docsCSP = helmet.contentSecurityPolicy({
       'https://cdn.redoc.ly',
       'https://cdn.jsdelivr.net',
     ],
-    'style-src': [
-      "'self'",
-      "'unsafe-inline'",
-      'https://unpkg.com',
-      'https://fonts.googleapis.com',
-    ],
+    'style-src': ["'self'", "'unsafe-inline'", 'https://unpkg.com', 'https://fonts.googleapis.com'],
     'font-src': ["'self'", 'https://fonts.gstatic.com'],
     'img-src': ["'self'", 'data:', 'https://redocly.com'],
     'worker-src': ["'self'", 'blob:'],

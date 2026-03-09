@@ -12,3 +12,4 @@ export {
 } from './socket.adapter'
 export { RedisAdapter, REDIS, REDIS_SUBSCRIBER, type RedisAdapterOptions } from './redis.adapter'
 export { SwaggerAdapter, type SwaggerAdapterOptions } from './swagger.adapter'
+export { DatabaseAdapter, DATABASE } from './database.adapter'

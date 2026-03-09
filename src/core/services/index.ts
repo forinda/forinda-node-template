@@ -11,3 +11,9 @@ export {
   type SendTemplateMailOptions,
   type SendMailResult,
 } from './mail.service'
+export {
+  DatabaseService,
+  DrizzleTransactionManager,
+  type DatabaseOptions,
+  type DrizzleTransaction,
+} from './database.service'

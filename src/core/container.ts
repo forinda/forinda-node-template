@@ -212,7 +212,9 @@ export class Container {
     if (postConstruct) {
       const result = instance[postConstruct]()
       if (result instanceof Promise) {
-        result.catch((err: any) => log.error(`@PostConstruct error in ${target.name}: ${err.message}`))
+        result.catch((err: any) =>
+          log.error(`@PostConstruct error in ${target.name}: ${err.message}`),
+        )
       }
     }
 

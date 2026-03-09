@@ -55,6 +55,8 @@ export {
   type RedisAdapterOptions,
   SwaggerAdapter,
   type SwaggerAdapterOptions,
+  DatabaseAdapter,
+  DATABASE,
 } from './adapters'
 export { envSchema, loadEnv, getEnv, type Env } from './env'
 export { validate } from './middleware/validate'
@@ -75,6 +77,10 @@ export {
   type SendMailOptions,
   type SendTemplateMailOptions,
   type SendMailResult,
+  DatabaseService,
+  DrizzleTransactionManager,
+  type DatabaseOptions,
+  type DrizzleTransaction,
 } from './services'
 export {
   ApiOperation,

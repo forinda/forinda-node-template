@@ -59,7 +59,12 @@ export function ApiResponse(options: ApiResponseOptions): MethodDecorator {
   return (target, propertyKey) => {
     const existing: ApiResponseOptions[] =
       Reflect.getMetadata(SWAGGER_METADATA.API_RESPONSE, target, propertyKey) || []
-    Reflect.defineMetadata(SWAGGER_METADATA.API_RESPONSE, [...existing, options], target, propertyKey)
+    Reflect.defineMetadata(
+      SWAGGER_METADATA.API_RESPONSE,
+      [...existing, options],
+      target,
+      propertyKey,
+    )
   }
 }
 

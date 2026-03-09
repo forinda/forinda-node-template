@@ -19,6 +19,10 @@ export class ProductModule implements AppModule {
   }
 
   routes(): ModuleRoutes {
-    return { path: '/products', router: buildRoutes(ProductController), controller: ProductController }
+    return {
+      path: '/products',
+      router: buildRoutes(ProductController),
+      controller: ProductController,
+    }
   }
 }

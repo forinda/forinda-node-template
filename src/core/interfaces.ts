@@ -84,24 +84,24 @@ export const METADATA = {
  * token so that `@Transactional` decorated methods can automatically
  * begin, commit, and rollback transactions.
  */
-export interface TransactionManager {
+export interface TransactionManager<TTx = unknown> {
   /**
    * Begin a new transaction.
    * @returns A promise resolving to a transaction handle (connection, session, etc.).
    */
-  begin(): Promise<any>
+  begin(): Promise<TTx>
 
   /**
    * Commit a previously begun transaction.
    * @param tx - The transaction handle returned by {@link begin}.
    */
-  commit(tx: any): Promise<void>
+  commit(tx: TTx): Promise<void>
 
   /**
    * Rollback a previously begun transaction on failure.
    * @param tx - The transaction handle returned by {@link begin}.
    */
-  rollback(tx: any): Promise<void>
+  rollback(tx: TTx): Promise<void>
 }
 
 /**
