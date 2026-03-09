@@ -1,10 +1,18 @@
 import 'reflect-metadata'
-import { Application, SwaggerAdapter, DatabaseAdapter, loadEnv, type AppAdapter } from '@/core'
+import {
+  Application,
+  SwaggerAdapter,
+  DatabaseAdapter,
+  RateLimiterAdapter,
+  loadEnv,
+  type AppAdapter,
+} from '@/core'
 import { createLogger } from '@/core/logger'
 import { modules } from '@/modules'
 import { redisAdapter } from './redis'
 import { socketAdapter } from './socket'
 import * as schema from '@/db/schema'
+import { rateLimitAdapter } from './rate-limit'
 
 const log = createLogger('Process')
 
@@ -48,6 +56,7 @@ async function main() {
       info: { title: 'Node App API', version: '1.0.0' },
     }),
     new DatabaseAdapter({ url: env.DATABASE_URL, schema }),
+    rateLimitAdapter,
   ]
 
   const app = new Application({

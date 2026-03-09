@@ -1,4 +1,4 @@
-import { Container, type RequestContext } from '@/core'
+import { Container, AuditService, type RequestContext } from '@/core'
 import { AuthService } from '../../domain/services/auth.service'
 
 export const AUTH_USER_KEY = 'authUser'
@@ -20,14 +20,18 @@ export async function authGuard(ctx: RequestContext, next: () => void): Promise<
   }
 
   const token = header.slice(7)
+  const container = Container.getInstance()
 
   try {
-    const container = Container.getInstance()
     const authService = container.resolve(AuthService)
     const payload = authService.verifyToken(token)
     ctx.set(AUTH_USER_KEY, payload)
     next()
   } catch {
+    const audit = container.resolve(AuditService)
+    audit.failure('auth.token_invalid', 'anonymous', 'Invalid or expired token', {
+      ip: ctx.req.ip,
+    })
     ctx.res.status(401).json({ message: 'Invalid or expired token' })
   }
 }

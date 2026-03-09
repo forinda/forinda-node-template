@@ -30,14 +30,14 @@ export class AuthController {
   @Post('/register', { body: registerSchema })
   @ApiOperation({ summary: 'Register a new user account' })
   async register(ctx: RequestContext<RegisterDTO>) {
-    const result = await this.registerUseCase.execute(ctx.body)
+    const result = await this.registerUseCase.execute(ctx.body, ctx.req.ip)
     ctx.created(result)
   }
 
   @Post('/login', { body: loginSchema })
   @ApiOperation({ summary: 'Login with email and password' })
   async login(ctx: RequestContext<LoginDTO>) {
-    const result = await this.loginUseCase.execute(ctx.body)
+    const result = await this.loginUseCase.execute(ctx.body, ctx.req.ip)
     ctx.json(result)
   }
 

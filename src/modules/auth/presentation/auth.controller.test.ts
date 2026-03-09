@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import request from 'supertest'
 import bcrypt from 'bcryptjs'
-import { Container, Application, buildRoutes, TRANSACTION_MANAGER } from '@/core'
+import { Container, Application, buildRoutes, TRANSACTION_MANAGER, AuditService } from '@/core'
 import type { AppModule, AppModuleClass, ModuleRoutes, TransactionManager } from '@/core'
 import {
   AUTH_REPOSITORY,
@@ -126,6 +126,7 @@ class TestAuthModule implements AppModule {
   register(container: Container): void {
     // Register all classes explicitly (Container.reset wipes decorator-time registrations)
     container.register(AuthService, AuthService)
+    container.register(AuditService, AuditService)
     container.register(RegisterUseCase, RegisterUseCase)
     container.register(LoginUseCase, LoginUseCase)
     container.register(GetMeUseCase, GetMeUseCase)
@@ -185,9 +186,7 @@ describe('AuthController (HTTP integration)', () => {
     }
 
     it('should register a user and return 201 with token', async () => {
-      const res = await request(expressApp)
-        .post('/api/v1/auth/register')
-        .send(validBody)
+      const res = await request(expressApp).post('/api/v1/auth/register').send(validBody)
 
       expect(res.status).toBe(201)
       expect(res.body.token).toBeTruthy()
@@ -223,9 +222,7 @@ describe('AuthController (HTTP integration)', () => {
     it('should return error when registering a duplicate email', async () => {
       await request(expressApp).post('/api/v1/auth/register').send(validBody)
 
-      const res = await request(expressApp)
-        .post('/api/v1/auth/register')
-        .send(validBody)
+      const res = await request(expressApp).post('/api/v1/auth/register').send(validBody)
 
       // The use case throws with status 409
       expect(res.status).toBeGreaterThanOrEqual(400)
@@ -297,14 +294,12 @@ describe('AuthController (HTTP integration)', () => {
   describe('GET /api/v1/auth/me', () => {
     it('should authenticate the token via middleware (known limitation: ctx.set not shared)', async () => {
       // Register to get a valid token
-      const registerRes = await request(expressApp)
-        .post('/api/v1/auth/register')
-        .send({
-          email: 'carol@example.com',
-          password: 'password123',
-          firstName: 'Carol',
-          lastName: 'White',
-        })
+      const registerRes = await request(expressApp).post('/api/v1/auth/register').send({
+        email: 'carol@example.com',
+        password: 'password123',
+        firstName: 'Carol',
+        lastName: 'White',
+      })
 
       const token = registerRes.body.token
 

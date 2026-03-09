@@ -57,10 +57,14 @@ export {
   type SwaggerAdapterOptions,
   DatabaseAdapter,
   DATABASE,
+  RateLimiterAdapter,
+  type RateLimiterAdapterOptions,
+  type RateLimitRule,
 } from './adapters'
 export { envSchema, loadEnv, getEnv, type Env } from './env'
 export { validate } from './middleware/validate'
 export { upload, cleanupFiles, type UploadedFile, type UploadOptions } from './middleware/upload'
+export { csrf, type CsrfOptions } from './middleware/csrf'
 export { RequestContext } from './context'
 export { buildRoutes, getControllerPath } from './router-builder'
 export { Logger, createLogger, logger } from './logger'
@@ -81,6 +85,10 @@ export {
   DrizzleTransactionManager,
   type DatabaseOptions,
   type DrizzleTransaction,
+  AuditService,
+  type AuditAction,
+  type AuditEntry,
+  type AuditSink,
 } from './services'
 export {
   type FilterOperator,

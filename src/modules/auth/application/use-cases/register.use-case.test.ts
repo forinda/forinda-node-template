@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { Container, TRANSACTION_MANAGER } from '@/core'
+import { Container, TRANSACTION_MANAGER, AuditService } from '@/core'
 import type { TransactionManager } from '@/core'
 import { AuthService } from '../../domain/services/auth.service'
 import {
@@ -74,6 +74,7 @@ describe('RegisterUseCase', () => {
     const container = Container.getInstance()
 
     container.register(AuthService, AuthService)
+    container.register(AuditService, AuditService)
     container.register(RegisterUseCase, RegisterUseCase)
 
     mockRepo = createMockRepo()

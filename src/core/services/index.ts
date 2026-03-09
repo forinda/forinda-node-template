@@ -17,3 +17,9 @@ export {
   type DatabaseOptions,
   type DrizzleTransaction,
 } from './database.service'
+export {
+  AuditService,
+  type AuditAction,
+  type AuditEntry,
+  type AuditSink,
+} from './audit.service'

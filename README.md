@@ -333,6 +333,61 @@ GET /api/v1/students?filter=status:eq:active&filter=gender:eq:male&sort=lastName
 GET /api/v1/students?filter=createdAt:between:2025-01-01,2025-12-31&sort=createdAt:desc&limit=50
 ```
 
+### Rate Limiting
+
+Built-in via the `RateLimiterAdapter`. Configured per-path or globally:
+
+```typescript
+new Application({
+  adapters: [
+    new RateLimiterAdapter({
+      rules: [
+        {
+          name: 'auth',
+          paths: ['/api/v1/auth/login', '/api/v1/auth/register'],
+          max: 10,
+          windowMs: 15 * 60 * 1000,
+          message: { error: 'Too many auth attempts, try again in 15 minutes' },
+        },
+        { name: 'global', max: 200, windowMs: 15 * 60 * 1000 },
+      ],
+    }),
+  ],
+})
+```
+
+### CSRF Protection
+
+Double-submit cookie middleware for routes using cookie-based auth:
+
+```typescript
+@Post('/')
+@Middleware(csrf())
+async update(ctx: RequestContext) { ... }
+```
+
+Not needed for pure JWT APIs. See [SECURITY.md](SECURITY.md) for details.
+
+### Audit Logging
+
+Structured audit logging via `AuditService` (injectable with `@Autowired()`):
+
+```typescript
+@Service()
+class LoginUseCase {
+  constructor(private readonly audit: AuditService) {}
+
+  async execute(dto: LoginDTO, ip?: string) {
+    // ...on success:
+    this.audit.success('auth.login', user.email, { ip, resourceId: user.id })
+    // ...on failure:
+    this.audit.failure('auth.login_failed', dto.email, 'Invalid password', { ip })
+  }
+}
+```
+
+Add custom sinks (database, external API) via `audit.addSink({ name, write })`.
+
 ### Modules
 
 ```typescript

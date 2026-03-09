@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import bcrypt from 'bcryptjs'
-import { Container } from '@/core'
+import { Container, AuditService } from '@/core'
 import { AuthService } from '../../domain/services/auth.service'
 import {
   AUTH_REPOSITORY,
@@ -48,6 +48,7 @@ describe('LoginUseCase', () => {
     const container = Container.getInstance()
 
     container.register(AuthService, AuthService)
+    container.register(AuditService, AuditService)
     container.register(LoginUseCase, LoginUseCase)
 
     mockRepo = createMockRepo()

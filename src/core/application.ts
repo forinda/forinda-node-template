@@ -5,6 +5,7 @@ import helmet from 'helmet'
 import compression from 'compression'
 import cors, { type CorsOptions } from 'cors'
 import morgan from 'morgan'
+import cookieParser from 'cookie-parser'
 import { Container } from './container'
 import type { AppModuleClass } from './app-module'
 import type { AppAdapter } from './adapters/adapter'
@@ -126,6 +127,7 @@ export class Application {
       this.app.use(morgan(fmt ?? (process.env.NODE_ENV === 'production' ? 'combined' : 'dev')))
     }
     this.app.use(express.json())
+    this.app.use(cookieParser())
 
     // 4. Instantiate each module and run register()
     const modules = this.options.modules.map((ModuleClass) => {

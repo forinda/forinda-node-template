@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import express from 'express'
 import request from 'supertest'
-import { Container } from '@/core'
+import { Container, AuditService } from '@/core'
 import { AuthService } from '../../domain/services/auth.service'
 import { authGuard, AUTH_USER_KEY } from './auth.guard'
 import { RequestContext } from '@/core/context'
@@ -14,6 +14,7 @@ describe('authGuard', () => {
     Container.reset()
     const container = Container.getInstance()
     container.register(AuthService, AuthService)
+    container.register(AuditService, AuditService)
     authService = container.resolve(AuthService)
 
     // Create a minimal Express app that uses the guard via RequestContext
