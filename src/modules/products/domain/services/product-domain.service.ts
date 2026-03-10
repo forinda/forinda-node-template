@@ -1,4 +1,4 @@
-import { Service, Inject } from '@/core'
+import { Service, Inject, HttpException } from '@/core'
 import { Product } from '../entities/product.entity'
 import { type IProductRepository, PRODUCT_REPOSITORY } from '../repositories/product.repository'
 import {
@@ -25,7 +25,7 @@ export class ProductDomainService {
     // Validate category exists
     const category = await this.categoryRepo.findById(CategoryId.from(params.categoryId))
     if (!category) {
-      throw new Error(`Category not found: ${params.categoryId}`)
+      throw HttpException.notFound(`Category not found: ${params.categoryId}`)
     }
 
     const product = Product.create(params)

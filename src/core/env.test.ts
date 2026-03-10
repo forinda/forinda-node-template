@@ -22,7 +22,7 @@ describe('envSchema', () => {
     })
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data.PORT).toBe(3000)
+      expect(result.data.PORT).toBe(8000)
       expect(result.data.NODE_ENV).toBe('development')
       expect(result.data.REDIS_HOST).toBe('127.0.0.1')
       expect(result.data.REDIS_PORT).toBe(6379)

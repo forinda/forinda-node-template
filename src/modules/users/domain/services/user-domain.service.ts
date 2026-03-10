@@ -1,4 +1,4 @@
-import { Service, Inject } from '@/core'
+import { Service, Inject, HttpException } from '@/core'
 import { User } from '../entities/user.entity'
 import { Email } from '../value-objects/email.vo'
 import { type IUserRepository, USER_REPOSITORY } from '../repositories/user.repository'
@@ -14,7 +14,7 @@ export class UserDomainService {
   async ensureEmailUnique(email: string): Promise<void> {
     const existing = await this.userRepo.findByEmail(Email.create(email))
     if (existing) {
-      throw new Error(`Email already in use: ${email}`)
+      throw HttpException.conflict(`Email already in use: ${email}`)
     }
   }
 

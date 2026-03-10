@@ -1,4 +1,4 @@
-import { Service, Inject } from '@/core'
+import { Service, Inject, HttpException } from '@/core'
 import { CategoryId } from '../../domain/value-objects/category-id.vo'
 import {
   type ICategoryRepository,
@@ -14,7 +14,7 @@ export class UpdateCategoryUseCase {
   async execute(id: string, dto: UpdateCategoryDTO): Promise<CategoryResponseDTO> {
     const category = await this.categoryRepo.findById(CategoryId.from(id))
     if (!category) {
-      throw new Error(`Category not found: ${id}`)
+      throw HttpException.notFound(`Category not found: ${id}`)
     }
 
     if (dto.name) category.changeName(dto.name)

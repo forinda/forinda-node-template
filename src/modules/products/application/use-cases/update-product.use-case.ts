@@ -1,4 +1,4 @@
-import { Service, Inject } from '@/core'
+import { Service, Inject, HttpException } from '@/core'
 import { ProductId } from '../../domain/value-objects/product-id.vo'
 import {
   type IProductRepository,
@@ -14,7 +14,7 @@ export class UpdateProductUseCase {
   async execute(id: string, dto: UpdateProductDTO): Promise<ProductResponseDTO> {
     const product = await this.productRepo.findById(ProductId.from(id))
     if (!product) {
-      throw new Error(`Product not found: ${id}`)
+      throw HttpException.notFound(`Product not found: ${id}`)
     }
 
     if (dto.name) product.changeName(dto.name)

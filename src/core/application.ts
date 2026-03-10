@@ -14,6 +14,7 @@ import { createLogger } from './logger'
 import { registerControllerForDocs, clearRegisteredRoutes } from './swagger'
 import { getControllerPath } from './router-builder'
 import { requestId } from './middleware/request-id'
+import { notFoundHandler, errorHandler } from './middleware/error-handler'
 
 const log = createLogger('Application')
 
@@ -173,22 +174,10 @@ export class Application {
     }
 
     // 7. Catch-all for unmatched routes
-    this.app.use((_req: express.Request, res: express.Response) => {
-      res.status(404).json({ error: 'Not found' })
-    })
+    this.app.use(notFoundHandler())
 
-    // 8. Global error handler (must have 4 params for Express to treat it as error middleware) — catches unhandled errors from routes/middleware
-    //    so they return a 500 response instead of crashing the process
-    this.app.use(
-      (err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-        log.error(err, 'Unhandled request error')
-        if (!res.headersSent) {
-          res.status(err.status ?? 500).json({
-            error: err.message ?? 'Internal server error',
-          })
-        }
-      },
-    )
+    // 8. Global error handler
+    this.app.use(errorHandler())
 
     // 9. Adapter beforeStart hooks
     for (const adapter of this.adapters) {

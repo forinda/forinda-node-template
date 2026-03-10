@@ -1,4 +1,4 @@
-import { Service, Inject } from '@/core'
+import { Service, Inject, HttpException } from '@/core'
 import { CategoryId } from '../../domain/value-objects/category-id.vo'
 import {
   type ICategoryRepository,
@@ -12,7 +12,7 @@ export class DeleteCategoryUseCase {
   async execute(id: string): Promise<void> {
     const category = await this.categoryRepo.findById(CategoryId.from(id))
     if (!category) {
-      throw new Error(`Category not found: ${id}`)
+      throw HttpException.notFound(`Category not found: ${id}`)
     }
     await this.categoryRepo.delete(category.id)
   }

@@ -1,4 +1,4 @@
-import { Service, Inject } from '@/core'
+import { Service, Inject, HttpException } from '@/core'
 import { Category } from '../entities/category.entity'
 import { CategoryName } from '../value-objects/category-name.vo'
 import { type ICategoryRepository, CATEGORY_REPOSITORY } from '../repositories/category.repository'
@@ -10,7 +10,7 @@ export class CategoryDomainService {
   async ensureNameUnique(name: string): Promise<void> {
     const existing = await this.categoryRepo.findByName(CategoryName.create(name))
     if (existing) {
-      throw new Error(`Category already exists: ${name}`)
+      throw HttpException.conflict(`Category already exists: ${name}`)
     }
   }
 

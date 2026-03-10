@@ -1,5 +1,5 @@
 import sharp from 'sharp'
-import { Service, Inject } from '@/core'
+import { Service, Inject, HttpException } from '@/core'
 import { AUTH_REPOSITORY, type IAuthRepository } from '../../domain/repositories/auth.repository'
 import type { UploadedFile } from '@/core'
 
@@ -13,7 +13,7 @@ export class UploadAvatarUseCase {
   async execute(userId: string, file: UploadedFile): Promise<{ avatarUrl: string }> {
     const user = await this.authRepo.findUserById(userId)
     if (!user) {
-      throw Object.assign(new Error('User not found'), { status: 404 })
+      throw HttpException.notFound('User not found')
     }
 
     // Resize and compress to WebP

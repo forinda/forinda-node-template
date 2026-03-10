@@ -69,6 +69,7 @@ export { validate } from './middleware/validate'
 export { upload, cleanupFiles, type UploadedFile, type UploadOptions } from './middleware/upload'
 export { csrf, type CsrfOptions } from './middleware/csrf'
 export { requestId, REQUEST_ID_HEADER } from './middleware/request-id'
+export { notFoundHandler, errorHandler } from './middleware/error-handler'
 export { RequestContext } from './context'
 export { buildRoutes, getControllerPath } from './router-builder'
 export { Logger, createLogger, logger } from './logger'
@@ -131,3 +132,4 @@ export {
   type OpenAPISpec,
   type SwaggerOptions,
 } from './swagger'
+export { HttpException, type ValidationError } from './errors'
