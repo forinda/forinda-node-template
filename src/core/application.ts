@@ -13,6 +13,7 @@ import { loadEnv } from './env'
 import { createLogger } from './logger'
 import { registerControllerForDocs, clearRegisteredRoutes } from './swagger'
 import { getControllerPath } from './router-builder'
+import { requestId } from './middleware/request-id'
 
 const log = createLogger('Application')
 
@@ -52,6 +53,12 @@ export interface ApplicationOptions {
    * Defaults to `false`.
    */
   trustProxy?: boolean | number | string | ((ip: string, hopIndex: number) => boolean)
+  /**
+   * Maximum allowed JSON request body size. Passed to `express.json({ limit })`.
+   * Accepts a number (bytes) or a string like `'100kb'`, `'1mb'`.
+   * Defaults to `'100kb'`.
+   */
+  jsonLimit?: string | number
 }
 
 /**
@@ -112,6 +119,7 @@ export class Application {
     this.app.set('trust proxy', this.options.trustProxy ?? false)
 
     // 3. Global middleware
+    this.app.use(requestId())
     if (this.options.helmet !== false) {
       this.app.use(helmet())
     }
@@ -126,7 +134,7 @@ export class Application {
       const fmt = typeof this.options.morgan === 'string' ? this.options.morgan : undefined
       this.app.use(morgan(fmt ?? (process.env.NODE_ENV === 'production' ? 'combined' : 'dev')))
     }
-    this.app.use(express.json())
+    this.app.use(express.json({ limit: this.options.jsonLimit ?? '100kb' }))
     this.app.use(cookieParser())
 
     // 4. Instantiate each module and run register()
@@ -153,7 +161,7 @@ export class Application {
         const version = route.version ?? defaultVersion
         const mountPath = `${apiPrefix}/v${version}${route.path}`
         this.app.use(mountPath, route.router)
-        log.info(`Mounted module routes: ${mountPath}`)
+        // log.info(`Mounted module routes: ${mountPath}`)
 
         // Register controller for OpenAPI docs introspection
         if (route.controller) {
@@ -164,17 +172,12 @@ export class Application {
       }
     }
 
-    // 7. Default health endpoint
-    this.app.get('/health', (_req, res) => {
-      res.json({ status: 'ok' })
-    })
-
-    // 8. Catch-all for unmatched routes
+    // 7. Catch-all for unmatched routes
     this.app.use((_req: express.Request, res: express.Response) => {
       res.status(404).json({ error: 'Not found' })
     })
 
-    // 9. Global error handler (must have 4 params for Express to treat it as error middleware) — catches unhandled errors from routes/middleware
+    // 8. Global error handler (must have 4 params for Express to treat it as error middleware) — catches unhandled errors from routes/middleware
     //    so they return a 500 response instead of crashing the process
     this.app.use(
       (err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -187,7 +190,7 @@ export class Application {
       },
     )
 
-    // 10. Adapter beforeStart hooks
+    // 9. Adapter beforeStart hooks
     for (const adapter of this.adapters) {
       adapter.beforeStart?.(this.app, this.container)
     }

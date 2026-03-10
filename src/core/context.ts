@@ -60,6 +60,11 @@ export class RequestContext<TBody = any, TParams = any, TQuery = any> {
     )
   }
 
+  /** The unique request ID (set by the `requestId()` middleware). */
+  get requestId(): string | undefined {
+    return (this.req as any).id
+  }
+
   /** Request headers. */
   get headers() {
     return this.req.headers

@@ -7,6 +7,7 @@ import { buildRoutes } from './router-builder'
 import type { RequestContext } from './context'
 import type { AppModule, ModuleRoutes, AppModuleClass } from './app-module'
 import type { AppAdapter } from './adapters/adapter'
+import { HealthAdapter } from './adapters/health.adapter'
 import { z } from 'zod'
 
 // Simple test controller
@@ -84,9 +85,10 @@ describe('Application', () => {
     expect(bad.status).toBe(422)
   })
 
-  it('should expose /health endpoint', async () => {
+  it('should expose /health endpoint via HealthAdapter', async () => {
     app = new Application({
       modules: [],
+      adapters: [new HealthAdapter()],
       helmet: false,
       cors: false,
       compression: false,
@@ -97,7 +99,45 @@ describe('Application', () => {
 
     const res = await request(expressApp).get('/health')
     expect(res.status).toBe(200)
-    expect(res.body).toEqual({ status: 'ok' })
+    expect(res.body.status).toBe('ok')
+    expect(res.body.timestamp).toBeDefined()
+  })
+
+  it('should expose /health/ready readiness probe', async () => {
+    app = new Application({
+      modules: [],
+      adapters: [new HealthAdapter()],
+      helmet: false,
+      cors: false,
+      compression: false,
+      morgan: false,
+    })
+    ;(app as any).setup()
+    const expressApp = app.getExpressApp()
+
+    const res = await request(expressApp).get('/health/ready')
+    // No DB or Redis registered, so checks object is empty but status is ok
+    expect(res.status).toBe(200)
+    expect(res.body.status).toBe('ok')
+    expect(res.body.checks).toBeDefined()
+  })
+
+  it('should include x-request-id header on responses', async () => {
+    app = new Application({
+      modules: [ItemModule as AppModuleClass],
+      helmet: false,
+      cors: false,
+      compression: false,
+      morgan: false,
+    })
+    ;(app as any).setup()
+    const expressApp = app.getExpressApp()
+
+    const res = await request(expressApp).get('/api/v1/items/')
+    expect(res.headers['x-request-id']).toBeDefined()
+    expect(res.headers['x-request-id']).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    )
   })
 
   it('should respect custom apiPrefix and defaultVersion', async () => {

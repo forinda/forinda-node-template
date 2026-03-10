@@ -24,6 +24,19 @@ export interface DatabaseOptions<TSchema extends Record<string, unknown> = Recor
   maxConnections?: number
   /** Enable query logging. Defaults to `false`. */
   logging?: boolean
+  /**
+   * SSL/TLS configuration for the database connection.
+   * - `true` — require SSL (reject unauthorized certs in production)
+   * - `'require'` — same as `true`
+   * - `'prefer'` — use SSL if available, fall back to plain
+   * - `false` — disable SSL (default)
+   * - An object with `rejectUnauthorized`, `ca`, `cert`, `key` for fine-grained control
+   */
+  ssl?:
+    | boolean
+    | 'require'
+    | 'prefer'
+    | { rejectUnauthorized?: boolean; ca?: string; cert?: string; key?: string }
 }
 
 /** Global transaction store shared across the DatabaseService instance. */
@@ -73,9 +86,12 @@ export class DatabaseService<TSchema extends Record<string, unknown> = Record<st
   readonly client: postgres.Sql
 
   constructor(options: DatabaseOptions<TSchema>) {
+    const sslOption = this.resolveSsl(options.ssl)
+
     this.client = postgres(options.url, {
       max: options.maxConnections ?? 10,
       onnotice: () => {},
+      ...(sslOption !== undefined ? { ssl: sslOption } : {}),
     })
 
     this.db = drizzle(this.client, {
@@ -130,6 +146,19 @@ export class DatabaseService<TSchema extends Record<string, unknown> = Record<st
   async shutdown(): Promise<void> {
     await this.client.end()
     log.info('Database connection closed')
+  }
+
+  /** Converts the public `ssl` option into the format expected by postgres.js. */
+  private resolveSsl(
+    ssl: DatabaseOptions['ssl'],
+  ):
+    | boolean
+    | { rejectUnauthorized?: boolean; ca?: string; cert?: string; key?: string }
+    | undefined {
+    if (ssl === undefined || ssl === false) return undefined
+    if (ssl === true || ssl === 'require') return { rejectUnauthorized: true }
+    if (ssl === 'prefer') return { rejectUnauthorized: false }
+    return ssl
   }
 }
 

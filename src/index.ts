@@ -1,5 +1,12 @@
 import 'reflect-metadata'
-import { Application, SwaggerAdapter, DatabaseAdapter, loadEnv, type AppAdapter } from '@/core'
+import {
+  Application,
+  SwaggerAdapter,
+  DatabaseAdapter,
+  HealthAdapter,
+  loadEnv,
+  type AppAdapter,
+} from '@/core'
 import { createLogger } from '@/core/logger'
 import { modules } from '@/modules'
 import { redisAdapter } from './app-adapters/redis'
@@ -43,6 +50,7 @@ async function main() {
   const env = loadEnv()
 
   const adapters: AppAdapter[] = [
+    new HealthAdapter(),
     socketAdapter,
     redisAdapter,
     new SwaggerAdapter({

@@ -60,11 +60,15 @@ export {
   RateLimiterAdapter,
   type RateLimiterAdapterOptions,
   type RateLimitRule,
+  HealthAdapter,
+  type HealthCheckResult,
+  type HealthResponse,
 } from './adapters'
 export { envSchema, loadEnv, getEnv, type Env } from './env'
 export { validate } from './middleware/validate'
 export { upload, cleanupFiles, type UploadedFile, type UploadOptions } from './middleware/upload'
 export { csrf, type CsrfOptions } from './middleware/csrf'
+export { requestId, REQUEST_ID_HEADER } from './middleware/request-id'
 export { RequestContext } from './context'
 export { buildRoutes, getControllerPath } from './router-builder'
 export { Logger, createLogger, logger } from './logger'

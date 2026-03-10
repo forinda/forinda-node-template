@@ -18,3 +18,8 @@ export {
   type RateLimiterAdapterOptions,
   type RateLimitRule,
 } from './rate-limiter.adapter'
+export {
+  HealthAdapter,
+  type HealthCheckResult,
+  type HealthResponse,
+} from './health.adapter'
